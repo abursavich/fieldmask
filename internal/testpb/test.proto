@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package dev.bursavich.fieldmask.test;
+
+option go_package = "bursavich.dev/fieldmask/internal/testpb";
+
+message Message {
+    bool bool_field = 1;
+    string string_field = 2;
+    int32 int32_field = 3;
+    int64 int64_field = 4;
+    sint32 sint32_field = 5;
+    sint64 sint64_field = 6;
+    uint32 uint32_field = 7;
+    uint64 uint64_field = 8;
+    fixed32 fixed32_field = 9;
+    fixed64 fixed64_field = 10;
+    Message message_field = 11;
+    bytes bytes_field = 12;
+
+    oneof oneof_field {
+        bool bool_oneof_field = 101;
+        string string_oneof_field = 102;
+        int32 int32_oneof_field = 103;
+        int64 int64_oneof_field = 104;
+        sint32 sint32_oneof_field = 105;
+        sint64 sint64_oneof_field = 106;
+        uint32 uint32_oneof_field = 107;
+        uint64 uint64_oneof_field = 108;
+        fixed32 fixed32_oneof_field = 109;
+        fixed64 fixed64_oneof_field = 110;
+        Message message_oneof_field = 111;
+    }
+
+    repeated bool repeated_bool_field = 201;
+    repeated string repeated_string_field = 202;
+    repeated int32 repeated_int32_field = 203;
+    repeated int64 repeated_int64_field = 204;
+    repeated sint32 repeated_sint32_field = 205;
+    repeated sint64 repeated_sint64_field = 206;
+    repeated uint32 repeated_uint32_field = 207;
+    repeated uint64 repeated_uint64_field = 208;
+    repeated fixed32 repeated_fixed32_field = 209;
+    repeated fixed64 repeated_fixed64_field = 210;
+    repeated Message repeated_message_field = 211;
+    repeated bytes repeated_bytes_field = 212;
+
+    map<bool, string> map_bool_string_field = 301;
+    map<string, string> map_string_string_field = 302;
+    map<int32, string> map_int32_string_field = 303;
+    map<int64, string> map_int64_string_field = 304;
+    map<sint32, string> map_sint32_string_field = 305;
+    map<sint64, string> map_sint64_string_field = 306;
+    map<uint32, string> map_uint32_string_field = 307;
+    map<uint64, string> map_uint64_string_field = 308;
+    map<fixed32, string> map_fixed32_string_field = 309;
+    map<fixed64, string> map_fixed64_string_field = 310;
+
+    map<bool, bytes> map_bool_bytes_field = 401;
+    map<string, bytes> map_string_bytes_field = 402;
+    map<int32, bytes> map_int32_bytes_field = 403;
+    map<int64, bytes> map_int64_bytes_field = 404;
+    map<sint32, bytes> map_sint32_bytes_field = 405;
+    map<sint64, bytes> map_sint64_bytes_field = 406;
+    map<uint32, bytes> map_uint32_bytes_field = 407;
+    map<uint64, bytes> map_uint64_bytes_field = 408;
+    map<fixed32, bytes> map_fixed32_bytes_field = 409;
+    map<fixed64, bytes> map_fixed64_bytes_field = 410;
+    
+    map<bool, Message> map_bool_message_field = 501;
+    map<string, Message> map_string_message_field = 502;
+    map<int32, Message> map_int32_message_field = 503;
+    map<int64, Message> map_int64_message_field = 504;
+    map<sint32, Message> map_sint32_message_field = 505;
+    map<sint64, Message> map_sint64_message_field = 506;
+    map<uint32, Message> map_uint32_message_field = 507;
+    map<uint64, Message> map_uint64_message_field = 508;
+    map<fixed32, Message> map_fixed32_message_field = 509;
+    map<fixed64, Message> map_fixed64_message_field = 510;
+}
