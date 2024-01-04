@@ -156,28 +156,15 @@ func (fm *FieldMask[T]) String() string {
 }
 
 func (fm *FieldMask[T]) Mask(msg T) {
-	m := msg.ProtoReflect()
-	if !m.IsValid() {
-		return
-	}
-	fm.msg.mask(m)
+	fm.msg.mask(msg.ProtoReflect())
 }
 
 func (fm *FieldMask[T]) Clone(msg T) T {
-	m := msg.ProtoReflect()
-	if !m.IsValid() {
-		var zero T
-		return zero
-	}
-	return fm.msg.clone(m).Interface().(T)
+	return fm.msg.clone(msg.ProtoReflect()).Interface().(T)
 }
 
 func (fm *FieldMask[T]) Update(dst, src T) {
-	dstProto := dst.ProtoReflect()
-	if !dstProto.IsValid() {
-		return
-	}
-	fm.msg.update(dstProto, src.ProtoReflect())
+	fm.msg.update(dst.ProtoReflect(), src.ProtoReflect())
 }
 
 type fieldMask interface {
