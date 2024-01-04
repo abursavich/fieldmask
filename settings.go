@@ -10,9 +10,34 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+type fieldLookupFunc func(fields protoreflect.FieldDescriptors, name string) (key string, fd protoreflect.FieldDescriptor, found bool)
+
+func lookupTextField(fields protoreflect.FieldDescriptors, name string) (key string, fd protoreflect.FieldDescriptor, found bool) {
+	fd = fields.ByTextName(name)
+	if fd == nil {
+		fd = fields.ByJSONName(name)
+	}
+	if fd == nil {
+		return "", nil, false
+	}
+	return fd.TextName(), fd, true
+}
+
+func lookupJSONField(fields protoreflect.FieldDescriptors, name string) (key string, fd protoreflect.FieldDescriptor, found bool) {
+	fd = fields.ByJSONName(name)
+	if fd == nil {
+		fd = fields.ByTextName(name)
+	}
+	if fd == nil {
+		return "", nil, false
+	}
+	return fd.JSONName(), fd, true
+}
+
 type settings struct {
 	extensions bool
 
+	lookupField    fieldLookupFunc
 	maskUnknowns   MaskUnknowns
 	updateUnknowns UpdateUnknowns
 	updateRepeated UpdateRepeated

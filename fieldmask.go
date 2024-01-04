@@ -15,7 +15,8 @@ import (
 )
 
 // https://google.aip.dev/161 Field masks
-// https://google.aip.dev/203 Field behavior documentation (TODO: OUTPUT_ONLY)
+// https://google.aip.dev/203 Field behavior documentation (TODO: IMMUTABLE, OUTPUT_ONLY. INPUT_ONLY)
+// https://google.aip.dev/134 Standard methods: Update
 
 type Option interface{ applyOption(*settings) }
 
@@ -26,6 +27,30 @@ func (fn optionFunc) applyOption(s *settings) { fn(s) }
 // WithExtensions returns an option that sets whether extensions are allowed.
 func WithExtensions(allow bool) Option {
 	return optionFunc(func(s *settings) { s.extensions = allow })
+}
+
+// FieldName specifies which field name to prefer when parsing and outputting paths.
+type FieldName int
+
+const (
+	// TextFieldName uses the text field name, which is typically lower_snake_case.
+	// This is the default behavior.
+	TextFieldName FieldName = iota
+	// JSONFieldName uses the JSON field name, which is typically lowerCamelCase.
+	JSONFieldName
+)
+
+// WithFieldName returns an option that sets the given mode for field names.
+// Either name is accepted when parsing paths, but only one is used for outputing paths.
+func WithFieldName(mode FieldName) Option {
+	return optionFunc(func(s *settings) {
+		switch mode {
+		case TextFieldName:
+			s.lookupField = lookupTextField
+		case JSONFieldName:
+			s.lookupField = lookupJSONField
+		}
+	})
 }
 
 // MaskUnknowns specifies how to handle unknown fields when a message is masked.
@@ -86,7 +111,11 @@ type FieldMask[T proto.Message] struct {
 }
 
 func newFieldMaskT[T proto.Message](options []Option) *FieldMask[T] {
-	var fm FieldMask[T]
+	fm := FieldMask[T]{
+		settings: settings{
+			lookupField: lookupTextField,
+		},
+	}
 	for _, o := range options {
 		o.applyOption(&fm.settings)
 	}

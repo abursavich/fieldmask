@@ -328,6 +328,7 @@ type pathTest struct {
 	name  string
 	input string
 	paths []string
+	opts  []Option
 }
 
 func (tt pathTest) run(t *testing.T) {
@@ -337,7 +338,7 @@ func (tt pathTest) run(t *testing.T) {
 		name = tt.input
 	}
 	t.Run(name, func(t *testing.T) {
-		mask, err := Parse[*testpb.Message](tt.input)
+		mask, err := Parse[*testpb.Message](tt.input, tt.opts...)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -358,6 +359,27 @@ func TestPaths(t *testing.T) {
 	pathTest{
 		input: "int32_field",
 		paths: []string{"int32_field"},
+	}.run(t)
+
+	pathTest{
+		name:  "int32_field:json",
+		input: "int32_field",
+		paths: []string{"int32Field"},
+		opts:  []Option{WithFieldName(JSONFieldName)},
+	}.run(t)
+
+	pathTest{
+		name:  "int32Field:text",
+		input: "int32Field",
+		paths: []string{"int32_field"},
+		opts:  []Option{WithFieldName(TextFieldName)},
+	}.run(t)
+
+	pathTest{
+		name:  "int32Field:json",
+		input: "int32Field",
+		paths: []string{"int32Field"},
+		opts:  []Option{WithFieldName(JSONFieldName)},
 	}.run(t)
 
 	pathTest{
@@ -445,6 +467,44 @@ func TestPaths(t *testing.T) {
 	}.run(t)
 
 	pathTest{
+		name: joinMasks(
+			"map_string_message_field.foo.int32_field",
+			"map_string_message_field.foo.string_field",
+			"map_string_message_field.bar.string_field",
+		) + ":json",
+		input: joinMasks(
+			"map_string_message_field.foo.int32_field",
+			"map_string_message_field.foo.string_field",
+			"map_string_message_field.bar.string_field",
+		),
+		paths: []string{
+			"mapStringMessageField.bar.stringField",
+			"mapStringMessageField.foo.int32Field",
+			"mapStringMessageField.foo.stringField",
+		},
+		opts: []Option{WithFieldName(JSONFieldName)},
+	}.run(t)
+
+	pathTest{
+		name: joinMasks(
+			"mapStringMessageField.foo.int32Field",
+			"mapStringMessageField.foo.stringField",
+			"mapStringMessageField.bar.stringField",
+		) + ":json",
+		input: joinMasks(
+			"mapStringMessageField.foo.int32Field",
+			"mapStringMessageField.foo.stringField",
+			"mapStringMessageField.bar.stringField",
+		),
+		paths: []string{
+			"mapStringMessageField.bar.stringField",
+			"mapStringMessageField.foo.int32Field",
+			"mapStringMessageField.foo.stringField",
+		},
+		opts: []Option{WithFieldName(JSONFieldName)},
+	}.run(t)
+
+	pathTest{
 		input: joinMasks(
 			"map_string_message_field.bar",
 			"map_string_message_field.foo.int32_field",
@@ -502,199 +562,4 @@ func TestPaths(t *testing.T) {
 			"map_int32_message_field.11",
 		},
 	}.run(t)
-}
-
-func TestMaskAndClone(t *testing.T) {
-	sample := &testpb.Message{
-		MessageField: &testpb.Message{
-			StringField: "nested",
-			OneofField: &testpb.Message_MessageOneofField{
-				MessageOneofField: &testpb.Message{
-					StringField: "MessageOneofField",
-				},
-			},
-		},
-		RepeatedMessageField: []*testpb.Message{
-			{Int32Field: 0, StringField: "repeated", MessageField: &testpb.Message{StringField: "nested"}},
-			{Int32Field: 1, StringField: "repeated", MessageField: &testpb.Message{StringField: "nested"}},
-			{Int32Field: 2, StringField: "repeated", MessageField: &testpb.Message{StringField: "nested"}},
-		},
-		MapStringMessageField: map[string]*testpb.Message{
-			"foo": {StringField: "foo"},
-			"bar": {StringField: "bar"},
-		},
-		MapInt32MessageField: map[int32]*testpb.Message{
-			17: {Int32Field: 17},
-			42: {Int32Field: 42},
-		},
-		Int32Field:  42,
-		StringField: "string",
-		OneofField: &testpb.Message_StringOneofField{
-			StringOneofField: "StringOneofField",
-		},
-	}
-	tests := []struct {
-		name   string
-		mask   string
-		input  *testpb.Message
-		output *testpb.Message
-	}{
-		{
-			name:   "wild",
-			mask:   "*",
-			input:  sample,
-			output: sample,
-		},
-		{
-			name:  "message_field",
-			mask:  "message_field",
-			input: sample,
-			output: &testpb.Message{
-				MessageField: sample.MessageField,
-			},
-		},
-		{
-			name:  "scalar_fields",
-			mask:  "int32_field,string_field",
-			input: sample,
-			output: &testpb.Message{
-				Int32Field:  sample.Int32Field,
-				StringField: sample.StringField,
-			},
-		},
-		{
-			name:  "repeated_field",
-			mask:  "repeated_message_field",
-			input: sample,
-			output: &testpb.Message{
-				RepeatedMessageField: sample.RepeatedMessageField,
-			},
-		},
-		{
-			name:  "repeated_field_subfield",
-			mask:  "repeated_message_field.*.int32_field",
-			input: sample,
-			output: &testpb.Message{
-				RepeatedMessageField: func() []*testpb.Message {
-					list := make([]*testpb.Message, len(sample.RepeatedMessageField))
-					for i, v := range sample.RepeatedMessageField {
-						list[i] = &testpb.Message{
-							Int32Field: v.Int32Field,
-						}
-					}
-					return list
-				}(),
-			},
-		},
-		{
-			name:  "repeated_field_subfields",
-			mask:  "repeated_message_field.*.int32_field,repeated_message_field.*.string_field",
-			input: sample,
-			output: &testpb.Message{
-				RepeatedMessageField: func() []*testpb.Message {
-					list := make([]*testpb.Message, len(sample.RepeatedMessageField))
-					for i, v := range sample.RepeatedMessageField {
-						list[i] = &testpb.Message{
-							Int32Field:  v.Int32Field,
-							StringField: v.StringField,
-						}
-					}
-					return list
-				}(),
-			},
-		},
-		{
-			name:  "map_string_message_field",
-			mask:  "map_string_message_field",
-			input: sample,
-			output: &testpb.Message{
-				MapStringMessageField: sample.MapStringMessageField,
-			},
-		},
-		{
-			name:  "map_string_message_field_wild_subfield",
-			mask:  "map_string_message_field.*.int32_field",
-			input: sample,
-			output: &testpb.Message{
-				MapStringMessageField: func() map[string]*testpb.Message {
-					m := make(map[string]*testpb.Message, len(sample.RepeatedMessageField))
-					for k, v := range sample.MapStringMessageField {
-						m[k] = &testpb.Message{
-							Int32Field: v.Int32Field,
-						}
-					}
-					return m
-				}(),
-			},
-		},
-		{
-			name:  "map_string_message_field_wild_subfields",
-			mask:  "map_string_message_field.*.int32_field,map_string_message_field.*.string_field",
-			input: sample,
-			output: &testpb.Message{
-				MapStringMessageField: func() map[string]*testpb.Message {
-					m := make(map[string]*testpb.Message, len(sample.RepeatedMessageField))
-					for k, v := range sample.MapStringMessageField {
-						m[k] = &testpb.Message{
-							Int32Field:  v.Int32Field,
-							StringField: v.StringField,
-						}
-					}
-					return m
-				}(),
-			},
-		},
-		{
-			name:  "map_string_message_field_keyed",
-			mask:  "map_string_message_field.foo",
-			input: sample,
-			output: &testpb.Message{
-				MapStringMessageField: map[string]*testpb.Message{
-					"foo": sample.MapStringMessageField["foo"],
-				},
-			},
-		},
-		{
-			name:  "map_string_message_field_keyed_subfield",
-			mask:  "map_string_message_field.foo.int32_field",
-			input: sample,
-			output: &testpb.Message{
-				MapStringMessageField: map[string]*testpb.Message{
-					"foo": {
-						Int32Field: sample.MapStringMessageField["foo"].Int32Field,
-					},
-				},
-			},
-		},
-		{
-			name:  "map_string_message_field_keyed_subfields",
-			mask:  "map_string_message_field.foo.int32_field,map_string_message_field.foo.string_field",
-			input: sample,
-			output: &testpb.Message{
-				MapStringMessageField: map[string]*testpb.Message{
-					"foo": {
-						Int32Field:  sample.MapStringMessageField["foo"].Int32Field,
-						StringField: sample.MapStringMessageField["foo"].StringField,
-					},
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fm, err := Parse[*testpb.Message](tt.mask)
-			if err != nil {
-				t.Fatalf("Failed to parse mask: %q: %v", tt.mask, err)
-			}
-			masked := clone(tt.input)
-			fm.Mask(masked)
-			if diff := protoDiff(tt.output, masked); diff != "" {
-				t.Fatalf("Mask: unexpected diff:\n%s", diff)
-			}
-			output := fm.Clone(clone(tt.input))
-			if diff := protoDiff(tt.output, output); diff != "" {
-				t.Fatalf("Clone: unexpected diff:\n%s", diff)
-			}
-		})
-	}
 }

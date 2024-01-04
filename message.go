@@ -51,6 +51,7 @@ func (fm *msgFieldMask) update(parent protoreflect.Message, value protoreflect.V
 
 type msgMask struct {
 	desc     protoreflect.MessageDescriptor
+	fldDescs protoreflect.FieldDescriptors
 	fields   map[string]fieldMask
 	settings *settings
 }
@@ -58,6 +59,7 @@ type msgMask struct {
 func newMsgMask(settings *settings, desc protoreflect.MessageDescriptor) *msgMask {
 	return &msgMask{
 		desc:     desc,
+		fldDescs: desc.Fields(),
 		settings: settings,
 	}
 }
@@ -72,8 +74,8 @@ func (mm *msgMask) init(path string) error {
 	if err != nil {
 		return err
 	}
-	fd := mm.desc.Fields().ByName(protoreflect.Name(name))
-	if fd == nil {
+	key, fd, ok := mm.settings.lookupField(mm.fldDescs, name)
+	if !ok {
 		return fmt.Errorf("unknown %v field: %q", mm.desc.FullName(), name)
 	}
 	fld := newFieldMask(mm.settings, fd)
@@ -81,7 +83,7 @@ func (mm *msgMask) init(path string) error {
 		return err
 	}
 	mm.fields = map[string]fieldMask{
-		name: fld,
+		key: fld,
 	}
 	return nil
 }
@@ -95,22 +97,22 @@ func (mm *msgMask) append(path string) error {
 	if err != nil {
 		return err
 	}
-	fd := mm.desc.Fields().ByName(protoreflect.Name(name))
-	if fd == nil {
+	key, fd, ok := mm.settings.lookupField(mm.fldDescs, name)
+	if !ok {
 		return fmt.Errorf("unknown %v field: %q", mm.desc.FullName(), name)
 	}
 	if mm.fields == nil {
 		// TODO: Validate the subpath.
 		return nil
 	}
-	if fld, ok := mm.fields[name]; ok {
+	if fld, ok := mm.fields[key]; ok {
 		return fld.append(subpath)
 	}
 	fld := newFieldMask(mm.settings, fd)
 	if err := fld.init(subpath); err != nil {
 		return err
 	}
-	mm.fields[name] = fld
+	mm.fields[key] = fld
 	return nil
 }
 
@@ -170,9 +172,8 @@ func (mm *msgMask) update(dst, src protoreflect.Message) {
 		mm.settings.updateMessage(dst, src)
 		return
 	}
-	fds := mm.desc.Fields()
 	for name, mask := range mm.fields {
-		fd := fds.ByName(protoreflect.Name(name))
+		_, fd, _ := mm.settings.lookupField(mm.fldDescs, name)
 		mask.update(dst, src.Get(fd), src.Has(fd))
 	}
 	mm.settings.doUpdateUnknowns(dst, src)
