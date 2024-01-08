@@ -35,6 +35,7 @@ func lookupJSONField(fields protoreflect.FieldDescriptors, name string) (key str
 }
 
 type settings struct {
+	rootDesc   protoreflect.MessageDescriptor
 	extensions bool
 
 	lookupField    fieldLookupFunc

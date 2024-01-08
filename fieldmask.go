@@ -24,6 +24,12 @@ type optionFunc func(*settings)
 
 func (fn optionFunc) applyOption(s *settings) { fn(s) }
 
+// WithMessageDescriptor returns an option that sets the message descriptor.
+// This is useful for dynamic types constructed at runtime.
+func WithMessageDescriptor(desc protoreflect.MessageDescriptor) Option {
+	return optionFunc(func(s *settings) { s.rootDesc = desc })
+}
+
 // WithExtensions returns an option that sets whether extensions are allowed.
 func WithExtensions(allow bool) Option {
 	return optionFunc(func(s *settings) { s.extensions = allow })
@@ -119,8 +125,11 @@ func newFieldMaskT[T proto.Message](options []Option) *FieldMask[T] {
 	for _, o := range options {
 		o.applyOption(&fm.settings)
 	}
-	var zero T
-	fm.msg = newMsgMask(&fm.settings, zero.ProtoReflect().Descriptor())
+	if fm.rootDesc == nil {
+		var zero T
+		fm.rootDesc = zero.ProtoReflect().Descriptor()
+	}
+	fm.msg = newMsgMask(&fm.settings, fm.rootDesc)
 	return &fm
 }
 
