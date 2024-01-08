@@ -302,6 +302,7 @@ type updateTest struct {
 	dst  *testpb.Message
 	src  *testpb.Message
 	out  *testpb.Message
+	err  bool
 }
 
 func (tt updateTest) run(t *testing.T) {
@@ -317,7 +318,15 @@ func (tt updateTest) run(t *testing.T) {
 			t.Fatalf("Failed to parse mask: %q: %v", tt.mask, err)
 		}
 		dst := clone(tt.dst)
-		fm.Update(dst, tt.src)
+		if err := fm.Update(dst, tt.src); err != nil {
+			if tt.err {
+				return
+			}
+			t.Fatalf("Update: unexpected error: %v", err)
+		}
+		if tt.err {
+			t.Fatalf("Update: expected error")
+		}
 		if diff := protoDiff(tt.out, dst); diff != "" {
 			t.Fatalf("Update: unexpected diff:\n%s", diff)
 		}

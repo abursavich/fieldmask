@@ -192,8 +192,9 @@ func (fm *FieldMask[T]) Clone(msg T) T {
 	return fm.msg.clone(msg.ProtoReflect()).Interface().(T)
 }
 
-func (fm *FieldMask[T]) Update(dst, src T) {
+func (fm *FieldMask[T]) Update(dst, src T) error {
 	fm.msg.update(dst.ProtoReflect(), src.ProtoReflect())
+	return nil
 }
 
 type fieldMask interface {
