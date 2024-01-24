@@ -23,12 +23,28 @@ func lookupTextField(fields protoreflect.FieldDescriptors, name string) (key str
 	return fd.TextName(), fd, true
 }
 
+func lookupTextFieldStrict(fields protoreflect.FieldDescriptors, name string) (key string, fd protoreflect.FieldDescriptor, found bool) {
+	fd = fields.ByTextName(name)
+	if fd == nil || fd.TextName() != name {
+		return "", nil, false
+	}
+	return fd.TextName(), fd, true
+}
+
 func lookupJSONField(fields protoreflect.FieldDescriptors, name string) (key string, fd protoreflect.FieldDescriptor, found bool) {
 	fd = fields.ByJSONName(name)
 	if fd == nil {
 		fd = fields.ByTextName(name)
 	}
 	if fd == nil {
+		return "", nil, false
+	}
+	return fd.JSONName(), fd, true
+}
+
+func lookupJSONFieldStrict(fields protoreflect.FieldDescriptors, name string) (key string, fd protoreflect.FieldDescriptor, found bool) {
+	fd = fields.ByJSONName(name)
+	if fd == nil || fd.JSONName() != name {
 		return "", nil, false
 	}
 	return fd.JSONName(), fd, true

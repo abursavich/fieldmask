@@ -336,8 +336,9 @@ func (tt updateTest) run(t *testing.T) {
 type pathTest struct {
 	name  string
 	input string
-	paths []string
 	opts  []Option
+	err   bool
+	paths []string
 }
 
 func (tt pathTest) run(t *testing.T) {
@@ -347,13 +348,20 @@ func (tt pathTest) run(t *testing.T) {
 		name = tt.input
 	}
 	t.Run(name, func(t *testing.T) {
+		t.Helper()
 		mask, err := Parse[*testpb.Message](tt.input, tt.opts...)
 		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+			if tt.err {
+				return
+			}
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if tt.err {
+			t.Fatal("Expected error")
 		}
 		paths := mask.Paths()
 		if diff := cmp.Diff(tt.paths, paths); diff != "" {
-			t.Fatalf("unexpected diff:\n%s", diff)
+			t.Fatalf("Unexpected paths diff:\n%s", diff)
 		}
 	})
 }
@@ -371,24 +379,59 @@ func TestPaths(t *testing.T) {
 	}.run(t)
 
 	pathTest{
+		name:  "int32Field:json",
+		input: "int32Field",
+		opts:  []Option{WithFieldName(JSONFieldName, false)},
+		paths: []string{"int32Field"},
+	}.run(t)
+
+	pathTest{
+		name:  "int32Field:json-strict",
+		input: "int32Field",
+		opts:  []Option{WithFieldName(JSONFieldName, true)},
+		paths: []string{"int32Field"},
+	}.run(t)
+
+	pathTest{
 		name:  "int32_field:json",
 		input: "int32_field",
+		opts:  []Option{WithFieldName(JSONFieldName, false)},
 		paths: []string{"int32Field"},
-		opts:  []Option{WithFieldName(JSONFieldName)},
+	}.run(t)
+
+	pathTest{
+		name:  "int32_field:json-strict",
+		input: "int32_field",
+		opts:  []Option{WithFieldName(JSONFieldName, true)},
+		err:   true,
+	}.run(t)
+
+	pathTest{
+		name:  "int32_field:text",
+		input: "int32_field",
+		opts:  []Option{WithFieldName(TextFieldName, false)},
+		paths: []string{"int32_field"},
+	}.run(t)
+
+	pathTest{
+		name:  "int32_field:text-strict",
+		input: "int32_field",
+		opts:  []Option{WithFieldName(TextFieldName, true)},
+		paths: []string{"int32_field"},
 	}.run(t)
 
 	pathTest{
 		name:  "int32Field:text",
 		input: "int32Field",
+		opts:  []Option{WithFieldName(TextFieldName, false)},
 		paths: []string{"int32_field"},
-		opts:  []Option{WithFieldName(TextFieldName)},
 	}.run(t)
 
 	pathTest{
-		name:  "int32Field:json",
+		name:  "int32Field:text-strict",
 		input: "int32Field",
-		paths: []string{"int32Field"},
-		opts:  []Option{WithFieldName(JSONFieldName)},
+		opts:  []Option{WithFieldName(TextFieldName, true)},
+		err:   true,
 	}.run(t)
 
 	pathTest{
@@ -480,18 +523,33 @@ func TestPaths(t *testing.T) {
 			"map_string_message_field.foo.int32_field",
 			"map_string_message_field.foo.string_field",
 			"map_string_message_field.bar.string_field",
-		) + ":json",
+		) + ":json-false",
 		input: joinMasks(
 			"map_string_message_field.foo.int32_field",
 			"map_string_message_field.foo.string_field",
 			"map_string_message_field.bar.string_field",
 		),
+		opts: []Option{WithFieldName(JSONFieldName, false)},
 		paths: []string{
 			"mapStringMessageField.bar.stringField",
 			"mapStringMessageField.foo.int32Field",
 			"mapStringMessageField.foo.stringField",
 		},
-		opts: []Option{WithFieldName(JSONFieldName)},
+	}.run(t)
+
+	pathTest{
+		name: joinMasks(
+			"map_string_message_field.foo.int32_field",
+			"map_string_message_field.foo.string_field",
+			"map_string_message_field.bar.string_field",
+		) + ":json-strict",
+		input: joinMasks(
+			"map_string_message_field.foo.int32_field",
+			"map_string_message_field.foo.string_field",
+			"map_string_message_field.bar.string_field",
+		),
+		opts: []Option{WithFieldName(JSONFieldName, true)},
+		err:  true,
 	}.run(t)
 
 	pathTest{
@@ -499,18 +557,18 @@ func TestPaths(t *testing.T) {
 			"mapStringMessageField.foo.int32Field",
 			"mapStringMessageField.foo.stringField",
 			"mapStringMessageField.bar.stringField",
-		) + ":json",
+		) + ":json-strict",
 		input: joinMasks(
 			"mapStringMessageField.foo.int32Field",
 			"mapStringMessageField.foo.stringField",
 			"mapStringMessageField.bar.stringField",
 		),
+		opts: []Option{WithFieldName(JSONFieldName, true)},
 		paths: []string{
 			"mapStringMessageField.bar.stringField",
 			"mapStringMessageField.foo.int32Field",
 			"mapStringMessageField.foo.stringField",
 		},
-		opts: []Option{WithFieldName(JSONFieldName)},
 	}.run(t)
 
 	pathTest{

@@ -43,7 +43,7 @@ func TestMessage(t *testing.T) {
 		name: "invalidInitField",
 		mask: "invalidInitField",
 		err:  true,
-		opts: []Option{WithFieldName(JSONFieldName)},
+		opts: []Option{WithFieldName(JSONFieldName, true)},
 	}.run(t)
 
 	basicTest{
@@ -55,7 +55,7 @@ func TestMessage(t *testing.T) {
 		name: "messageField,invalidInitField",
 		mask: "messageField,invalidInitField",
 		err:  true,
-		opts: []Option{WithFieldName(JSONFieldName)},
+		opts: []Option{WithFieldName(JSONFieldName, true)},
 	}.run(t)
 
 	// TODO: Validate subpaths after wildcards.

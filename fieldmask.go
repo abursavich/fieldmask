@@ -47,14 +47,23 @@ const (
 )
 
 // WithFieldName returns an option that sets the given mode for field names.
-// Either name is accepted when parsing paths, but only one is used for outputing paths.
-func WithFieldName(mode FieldName) Option {
+// If strict is false, either name will be accepted when parsing paths.
+// The specified mode is always used when outputing paths.
+func WithFieldName(mode FieldName, strict bool) Option {
 	return optionFunc(func(s *settings) {
 		switch mode {
 		case TextFieldName:
-			s.lookupField = lookupTextField
+			lookup := lookupTextField
+			if strict {
+				lookup = lookupTextFieldStrict
+			}
+			s.lookupField = lookup
 		case JSONFieldName:
-			s.lookupField = lookupJSONField
+			lookup := lookupJSONField
+			if strict {
+				lookup = lookupJSONFieldStrict
+			}
+			s.lookupField = lookup
 		}
 	})
 }
