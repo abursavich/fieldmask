@@ -4,6 +4,10 @@
 // Use of this source code is governed by The MIT License
 // which can be found in the LICENSE file.
 
+// Package fieldmask provides protobuf field masking for projections and updates.
+//
+// It follows Google API Improvement Proposal guidelines by default, but provides options that
+// allow it to fall back to the behavior of basic FieldMask documentation.
 package fieldmask
 
 import (
